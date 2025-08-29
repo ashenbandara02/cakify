@@ -61,7 +61,7 @@ A web-based platform designed for a home-based cake business to streamline order
 ## Setup Instructions (Optional Placeholder)
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/from-oven-to-order.git
+git clone https://github.com/ashenbandara02/cakify.git
 
 # Navigate to the project directory
 cd from-oven-to-order

@@ -45,10 +45,10 @@ A web-based platform designed for a home-based cake business to streamline order
 ---
 
 ## Project Team
-- IT24100315 - M.K.M. Pehesara
-- IT24100487 - R.M.A. Priyashan
-- IT24101492 - E.J.M.S. De Silva
-- IT24101512 - Ashen Bandara
+- IT24100315 - Ashen Bandara
+- IT24100487 - M.K.M. Pehesara
+- IT24101492 - R.M.A. Priyashan
+- IT24101512 - E.J.M.S. De Silva
 
 ---
 

@@ -5,7 +5,11 @@ import com.cakify.enums.OrderStatus;
 import com.cakify.repository.OrderRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import com.cakify.exception.OrderNotFoundException;
+import com.cakify.exception.OrderValidationException;
+import com.cakify.exception.InvalidOrderStatusException;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -18,6 +22,7 @@ public class OrderService {
 
     // Create new order
     public Order createOrder(Order order) {
+        validateOrder(order);
         order.setStatus(OrderStatus.PENDING);
         order.setOrderDate(LocalDateTime.now());
         return orderRepository.save(order);
@@ -43,15 +48,16 @@ public class OrderService {
         return orderRepository.findByCustomerEmail(email);
     }
 
-    // Update order status
+   // update OrderStatus 
     public Order updateOrderStatus(Long orderId, OrderStatus newStatus) {
-        Optional<Order> orderOpt = orderRepository.findById(orderId);
-        if (orderOpt.isPresent()) {
-            Order order = orderOpt.get();
-            order.setStatus(newStatus);
-            return orderRepository.save(order);
-        }
-        throw new RuntimeException("Order not found with ID: " + orderId);
+    Optional<Order> orderOpt = orderRepository.findById(orderId);
+    if (orderOpt.isPresent()) {
+        Order order = orderOpt.get();
+        validateStatusTransition(order.getStatus(), newStatus);
+        order.setStatus(newStatus);
+        return orderRepository.save(order);
+    }
+    throw new OrderNotFoundException(orderId);
     }
 
     // Update entire order
@@ -71,7 +77,7 @@ public class OrderService {
             
             return orderRepository.save(order);
         }
-        throw new RuntimeException("Order not found with ID: " + orderId);
+        throw new OrderNotFoundException(orderId);
     }
 
     // Delete order
@@ -79,7 +85,7 @@ public class OrderService {
         if (orderRepository.existsById(orderId)) {
             orderRepository.deleteById(orderId);
         } else {
-            throw new RuntimeException("Order not found with ID: " + orderId);
+            throw new OrderNotFoundException(orderId);
         }
     }
 
@@ -97,4 +103,65 @@ public class OrderService {
     public Long getOrderCountByStatus(OrderStatus status) {
         return orderRepository.countOrdersByStatus(status);
     }
+
+    /**
+    * Validate order data before saving
+    * Demonstrates business rule validation
+    */
+    private void validateOrder(Order order) {
+    if (order.getCustomerName() == null || order.getCustomerName().trim().isEmpty()) {
+        throw new OrderValidationException("customerName", "Customer name is required");
+    }
+    
+    if (order.getCustomerEmail() == null || order.getCustomerEmail().trim().isEmpty()) {
+        throw new OrderValidationException("customerEmail", "Customer email is required");
+    }
+    
+    if (order.getTotalAmount() == null || order.getTotalAmount().compareTo(BigDecimal.ZERO) <= 0) {
+        throw new OrderValidationException("totalAmount", "Total amount must be greater than zero");
+    }
+    
+    if (order.getQuantity() == null || order.getQuantity() <= 0) {
+        throw new OrderValidationException("quantity", "Quantity must be greater than zero");
+    }
+    
+    // Email format validation (basic)
+    if (!order.getCustomerEmail().matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
+        throw new OrderValidationException("customerEmail", "Invalid email format");
+    }
+  }
+
+  /**
+  * Validate order status transitions
+  * Demonstrates business workflow rules
+  */
+private void validateStatusTransition(OrderStatus currentStatus, OrderStatus newStatus) {
+    // Define valid transitions
+    switch (currentStatus) {
+        case PENDING:
+            if (newStatus != OrderStatus.CONFIRMED && newStatus != OrderStatus.CANCELLED) {
+                throw new InvalidOrderStatusException(currentStatus.toString(), newStatus.toString());
+            }
+            break;
+        case CONFIRMED:
+            if (newStatus != OrderStatus.IN_PROGRESS && newStatus != OrderStatus.CANCELLED) {
+                throw new InvalidOrderStatusException(currentStatus.toString(), newStatus.toString());
+            }
+            break;
+        case IN_PROGRESS:
+            if (newStatus != OrderStatus.READY && newStatus != OrderStatus.CANCELLED) {
+                throw new InvalidOrderStatusException(currentStatus.toString(), newStatus.toString());
+            }
+            break;
+        case READY:
+            if (newStatus != OrderStatus.DELIVERED) {
+                throw new InvalidOrderStatusException(currentStatus.toString(), newStatus.toString());
+            }
+            break;
+        case DELIVERED:
+        case CANCELLED:
+            throw new InvalidOrderStatusException("Cannot change status from " + currentStatus + " to " + newStatus);
+    }
+  }
+
 }

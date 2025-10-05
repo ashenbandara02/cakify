@@ -16,7 +16,7 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/products")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:5173") // Allow frontend access
+@CrossOrigin(origins = "http://localhost:8080") // Allow frontend access
 public class ProductController {
 
     private final ProductService productService;

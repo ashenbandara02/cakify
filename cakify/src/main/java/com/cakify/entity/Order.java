@@ -8,6 +8,12 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+import java.util.List;
+import java.util.ArrayList;
+
+import jakarta.validation.constraints.*;
+import jakarta.validation.Valid;
+
 @Entity
 @Table(name = "orders")
 public class Order {
@@ -24,9 +30,13 @@ public class Order {
     private Long productId;
     
     // Customer Information
+    @NotBlank(message = "Customer name is required")
+    @Size(min = 2, max = 100, message = "Customer name must be between 2 and 100 characters")
     @Column(name = "customer_name", nullable = false)
     private String customerName;
-    
+
+    @NotBlank(message = "Customer email is required")
+    @Email(message = "Invalid email format")
     @Column(name = "customer_email", nullable = false)
     private String customerEmail;
     
@@ -37,9 +47,13 @@ public class Order {
     private String deliveryAddress;
     
     // Order Details
+    @NotNull(message = "Total amount is required")
+    @DecimalMin(value = "0.01", message = "Total amount must be greater than 0")
     @Column(name = "total_amount", nullable = false, precision = 10, scale = 2)
     private BigDecimal totalAmount;
     
+    @NotNull(message = "Quantity is required")
+    @Min(value = 1, message = "Quantity must be at least 1")
     @Column(name = "quantity", nullable = false)
     private Integer quantity;
     
@@ -67,6 +81,11 @@ public class Order {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    // One Order has Many OrderItems
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<OrderItem> orderItems = new ArrayList<>();
+
     
     // Constructors
     public Order() {}
@@ -203,4 +222,35 @@ public class Order {
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
     }
+
+    // Getter and Setter for orderItems
+    public List<OrderItem> getOrderItems() {
+    return orderItems;
+    }
+
+    public void setOrderItems(List<OrderItem> orderItems) {
+    this.orderItems = orderItems;
+    }
+
+    // Helper methods for managing order items
+    public void addOrderItem(OrderItem orderItem) {
+    orderItems.add(orderItem);
+    orderItem.setOrder(this);
+    }
+
+    public void removeOrderItem(OrderItem orderItem) {
+    orderItems.remove(orderItem);
+    orderItem.setOrder(null);
+    }
+
+    /**
+    * Calculate total amount from all order items
+    */
+    public void calculateTotalAmount() {
+    this.totalAmount = orderItems.stream()
+        .map(OrderItem::getTotalPrice)
+        .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+
 }

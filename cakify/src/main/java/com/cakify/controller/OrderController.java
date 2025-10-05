@@ -3,6 +3,9 @@ package com.cakify.controller;
 import com.cakify.entity.Order;
 import com.cakify.enums.OrderStatus;
 import com.cakify.service.OrderService;
+
+import jakarta.validation.Valid;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,7 +24,7 @@ public class OrderController {
 
     // Create new order
     @PostMapping
-    public ResponseEntity<Order> createOrder(@RequestBody Order order) {
+    public ResponseEntity<Order> createOrder(@Valid @RequestBody Order order) {
         try {
             Order createdOrder = orderService.createOrder(order);
             return new ResponseEntity<>(createdOrder, HttpStatus.CREATED);
@@ -96,7 +99,7 @@ public class OrderController {
 
     // Update entire order
     @PutMapping("/{id}")
-    public ResponseEntity<Order> updateOrder(@PathVariable Long id, @RequestBody Order order) {
+    public ResponseEntity<Order> updateOrder(@PathVariable Long id, @Valid @RequestBody Order order) {
         try {
             Order updatedOrder = orderService.updateOrder(id, order);
             return new ResponseEntity<>(updatedOrder, HttpStatus.OK);

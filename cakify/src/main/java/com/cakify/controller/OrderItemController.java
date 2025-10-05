@@ -2,6 +2,9 @@ package com.cakify.controller;
 
 import com.cakify.entity.OrderItem;
 import com.cakify.service.OrderItemService;
+
+import jakarta.validation.Valid;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,8 +31,8 @@ public class OrderItemController {
      */
     @PostMapping("/order/{orderId}")
     public ResponseEntity<OrderItem> addItemToOrder(
-            @PathVariable Long orderId, 
-            @RequestBody OrderItem orderItem) {
+            @PathVariable Long orderId,
+            @Valid @RequestBody OrderItem orderItem) {
         try {
             OrderItem savedItem = orderItemService.addItemToOrder(orderId, orderItem);
             return new ResponseEntity<>(savedItem, HttpStatus.CREATED);
@@ -80,7 +83,7 @@ public class OrderItemController {
     @PutMapping("/{id}")
     public ResponseEntity<OrderItem> updateOrderItem(
             @PathVariable Long id, 
-            @RequestBody OrderItem orderItem) {
+            @Valid @RequestBody OrderItem orderItem) {
         try {
             OrderItem updatedItem = orderItemService.updateOrderItem(id, orderItem);
             return new ResponseEntity<>(updatedItem, HttpStatus.OK);

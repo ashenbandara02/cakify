@@ -3,6 +3,8 @@ package com.cakify.entity;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 
+import jakarta.validation.constraints.*;
+
 /**
  * OrderItem entity representing individual items within an order
  * Demonstrates One-to-Many relationship design pattern
@@ -21,19 +23,28 @@ public class OrderItem {
     private Order order;
     
     // Product information (will link to Product entity later)
+    @NotNull(message = "Product ID is required")
     @Column(name = "product_id", nullable = false)
     private Long productId;
     
+    @NotBlank(message = "Product name is required")
+    @Size(min = 2, max = 200, message = "Product name must be between 2 and 200 characters")
     @Column(name = "product_name", nullable = false)
     private String productName;
     
+    @Size(max = 1000, message = "Product description cannot exceed 1000 characters")
     @Column(name = "product_description")
     private String productDescription;
     
     // Pricing and quantity
+    @NotNull(message = "Unit price is required")
+     @DecimalMin(value = "0.01", message = "Unit price must be greater than 0")
     @Column(name = "unit_price", nullable = false, precision = 10, scale = 2)
     private BigDecimal unitPrice;
     
+    @NotNull(message = "Quantity is required")
+    @Min(value = 1, message = "Quantity must be at least 1")
+    @Max(value = 50, message = "Quantity per item cannot exceed 50")
     @Column(name = "quantity", nullable = false)
     private Integer quantity;
     
@@ -41,6 +52,7 @@ public class OrderItem {
     private BigDecimal totalPrice;
     
     // Additional item details
+    @Size(max = 500, message = "Special instructions cannot exceed 500 characters")
     @Column(name = "special_instructions")
     private String specialInstructions;
     

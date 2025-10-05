@@ -40,9 +40,13 @@ public class Order {
     @Column(name = "customer_email", nullable = false)
     private String customerEmail;
     
+    @Pattern(regexp = "^[0-9+\\-\\s()]*$", message = "Please provide a valid phone number")
+    @Size(min = 10, max = 15, message = "Phone number must be between 10 and 15 digits")
     @Column(name = "customer_phone")
     private String customerPhone;
     
+    @NotBlank(message = "Delivery address is required")
+    @Size(min = 10, max = 500, message = "Delivery address must be between 10 and 500 characters")
     @Column(name = "delivery_address", columnDefinition = "TEXT")
     private String deliveryAddress;
     
@@ -70,6 +74,7 @@ public class Order {
     private LocalDateTime deliveryDate;
     
     // Special Instructions
+    @Size(max = 1000, message = "Special notes cannot exceed 1000 characters")
     @Column(name = "special_notes", columnDefinition = "TEXT")
     private String specialNotes;
     
@@ -83,6 +88,7 @@ public class Order {
     private LocalDateTime updatedAt;
 
     // One Order has Many OrderItems
+    @Valid
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<OrderItem> orderItems = new ArrayList<>();
 

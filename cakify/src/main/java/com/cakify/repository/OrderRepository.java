@@ -1,5 +1,8 @@
 package com.cakify.repository;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import com.cakify.entity.Order;
 import com.cakify.enums.OrderStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -46,4 +49,25 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     // Custom query to find orders by customer name (case insensitive)
     @Query("SELECT o FROM Order o WHERE LOWER(o.customerName) LIKE LOWER(CONCAT('%', :name, '%'))")
     List<Order> findByCustomerNameContainingIgnoreCase(@Param("name") String name);
+
+    /**
+    * Find all orders with pagination
+    */
+    Page<Order> findAll(Pageable pageable);
+
+    /**
+    * Find orders by status with pagination
+    */
+    Page<Order> findByStatus(OrderStatus status, Pageable pageable);
+
+    /**
+    * Find orders by customer email with pagination
+    */
+    Page<Order> findByCustomerEmail(String customerEmail, Pageable pageable);
+
+    /**
+    * Find orders by customer name with pagination (case insensitive)
+    */
+    @Query("SELECT o FROM Order o WHERE LOWER(o.customerName) LIKE LOWER(CONCAT('%', :name, '%'))")
+        Page<Order> findByCustomerNameContainingIgnoreCase(@Param("name") String name, Pageable pageable);
 }

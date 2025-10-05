@@ -1,5 +1,8 @@
 package com.cakify.service;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import com.cakify.entity.Order;
 import com.cakify.enums.OrderStatus;
 import com.cakify.repository.OrderRepository;
@@ -164,4 +167,24 @@ private void validateStatusTransition(OrderStatus currentStatus, OrderStatus new
     }
   }
 
+    /**
+    * Get all orders with pagination
+    */
+public Page<Order> getAllOrdersPaginated(Pageable pageable) {
+    return orderRepository.findAll(pageable);
+ }
+
+/**
+ * Get orders by status with pagination
+ */
+public Page<Order> getOrdersByStatusPaginated(OrderStatus status, Pageable pageable) {
+    return orderRepository.findByStatus(status, pageable);
+ }
+
+   /**
+   * Search orders by customer name with pagination
+   */
+   public Page<Order> searchOrdersByCustomerNamePaginated(String name, Pageable pageable) {
+    return orderRepository.findByCustomerNameContainingIgnoreCase(name, pageable);
+  }
 }

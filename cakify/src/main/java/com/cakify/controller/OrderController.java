@@ -1,5 +1,8 @@
 package com.cakify.controller;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import com.cakify.entity.Order;
 import com.cakify.enums.OrderStatus;
 import com.cakify.service.OrderService;
@@ -155,4 +158,51 @@ public class OrderController {
             return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
+
+/**
+ * Get all orders with pagination
+ * GET /api/orders/paginated?page=0&size=20&sort=orderDate,desc
+ */
+@GetMapping("/paginated")
+public ResponseEntity<Page<Order>> getAllOrdersPaginated(Pageable pageable) {
+    try {
+        Page<Order> orders = orderService.getAllOrdersPaginated(pageable);
+        return new ResponseEntity<>(orders, HttpStatus.OK);
+    } catch (Exception e) {
+        return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+}
+
+/**
+ * Get orders by status with pagination
+ * GET /api/orders/status/{status}/paginated?page=0&size=10
+ */
+@GetMapping("/status/{status}/paginated")
+public ResponseEntity<Page<Order>> getOrdersByStatusPaginated(
+        @PathVariable OrderStatus status, 
+        Pageable pageable) {
+    try {
+        Page<Order> orders = orderService.getOrdersByStatusPaginated(status, pageable);
+        return new ResponseEntity<>(orders, HttpStatus.OK);
+    } catch (Exception e) {
+        return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+}
+
+/**
+ * Search orders with pagination
+ * GET /api/orders/search/paginated?name=john&page=0&size=5&sort=orderDate,desc
+ */
+@GetMapping("/search/paginated")
+public ResponseEntity<Page<Order>> searchOrdersByCustomerNamePaginated(
+        @RequestParam String name, 
+        Pageable pageable) {
+    try {
+        Page<Order> orders = orderService.searchOrdersByCustomerNamePaginated(name, pageable);
+        return new ResponseEntity<>(orders, HttpStatus.OK);
+    } catch (Exception e) {
+        return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
 }

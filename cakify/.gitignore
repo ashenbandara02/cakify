@@ -14,7 +14,7 @@ target/
 .sts4-cache
 
 ### IntelliJ IDEA ###
-.idea
+.idea/
 *.iws
 *.iml
 *.ipr
@@ -34,7 +34,7 @@ build/
 
 ### Application-specific ###
 # Ignore local config with passwords
-src/main/resources/application-local.properties
+src/main/resources/application.properties
 
 # Local config files
 cakify/src/main/java/com/cakify/config/SecurityConfig.java

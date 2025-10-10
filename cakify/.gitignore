@@ -32,6 +32,9 @@ build/
 ### VS Code ###
 .vscode/
 
-.idea/
+### Application-specific ###
+# Ignore local config with passwords
+src/main/resources/application-local.properties
 
-application.properties/
+# Local config files
+src/main/java/com/cakify/config/SecurityConfig.java

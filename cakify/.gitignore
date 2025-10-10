@@ -37,4 +37,4 @@ build/
 src/main/resources/application-local.properties
 
 # Local config files
-src/main/java/com/cakify/config/SecurityConfig.java
+cakify/src/main/java/com/cakify/config/SecurityConfig.java

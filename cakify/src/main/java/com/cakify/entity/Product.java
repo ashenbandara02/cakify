@@ -79,4 +79,22 @@ public class Product {
         }
     }
 
-// Calculate
+    // Calculate average rating from reviews
+    public Double getAverageRating() {
+        if (reviews == null || reviews.isEmpty()) {
+            return 0.0;
+        }
+        return reviews.stream()
+                .mapToInt(Review::getRating)
+                .average()
+                .orElse(0.0);
+    }
+
+    // Get review count
+    public Long getReviewCount() {
+        if (reviews == null) {
+            return 0L;
+        }
+        return (long) reviews.size();
+    }
+}

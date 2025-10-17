@@ -1,9 +1,11 @@
 package com.cakify.service;
 
 import com.cakify.dto.ProductResponse;
-import com.cakify.entity.AvailabilityStatus;
+import com.cakify.entity.Category;
 import com.cakify.entity.Product;
+import com.cakify.repository.CategoryRepository;
 import com.cakify.repository.ProductRepository;
+import com.cakify.repository.ReviewRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,26 +20,28 @@ import java.util.stream.Collectors;
 public class ProductService {
 
     private final ProductRepository productRepository;
+    private final CategoryRepository categoryRepository;
+    private final ReviewRepository reviewRepository;
 
-    // Get all products
+    // Get all products with ratings
     public List<ProductResponse> getAllProducts() {
         List<Product> products = productRepository.findAll();
         return products.stream()
-                .map(ProductResponse::fromEntity)
+                .map(this::mapToResponseWithRatings)
                 .collect(Collectors.toList());
     }
 
-    // Get product by ID
+    // Get product by ID with ratings
     public Optional<ProductResponse> getProductById(Long id) {
         return productRepository.findById(id)
-                .map(ProductResponse::fromEntity);
+                .map(this::mapToResponseWithRatings);
     }
 
     // Get available products only (for public)
     public List<ProductResponse> getAvailableProducts() {
         List<Product> products = productRepository.findAvailableProducts();
         return products.stream()
-                .map(ProductResponse::fromEntity)
+                .map(this::mapToResponseWithRatings)
                 .collect(Collectors.toList());
     }
 
@@ -45,15 +49,15 @@ public class ProductService {
     public List<ProductResponse> getFeaturedProducts() {
         List<Product> products = productRepository.findByFeaturedTrue();
         return products.stream()
-                .map(ProductResponse::fromEntity)
+                .map(this::mapToResponseWithRatings)
                 .collect(Collectors.toList());
     }
 
     // Get products by category
-    public List<ProductResponse> getProductsByCategory(String category) {
-        List<Product> products = productRepository.findByCategoryIgnoreCase(category);
+    public List<ProductResponse> getProductsByCategory(Long categoryId) {
+        List<Product> products = productRepository.findByCategoryId(categoryId);
         return products.stream()
-                .map(ProductResponse::fromEntity)
+                .map(this::mapToResponseWithRatings)
                 .collect(Collectors.toList());
     }
 
@@ -62,34 +66,45 @@ public class ProductService {
         // Validate required fields
         validateProduct(product);
 
-        // Set default values
-        if (product.getAvailability() == null) {
-            product.setAvailability(AvailabilityStatus.IN_STOCK);
+        // Verify category exists
+        if (product.getCategory() == null || product.getCategory().getId() == null) {
+            throw new IllegalArgumentException("Category is required");
         }
+
+        Category category = categoryRepository.findById(product.getCategory().getId())
+                .orElseThrow(() -> new IllegalArgumentException("Category not found"));
+
+        product.setCategory(category);
+
+        // Set default values
         if (product.getFeatured() == null) {
             product.setFeatured(false);
         }
-        if (product.getStockQuantity() == null) {
-            product.setStockQuantity(0);
-        }
 
         Product savedProduct = productRepository.save(product);
-        return ProductResponse.fromEntity(savedProduct);
+        return mapToResponseWithRatings(savedProduct);
     }
 
     // Update existing product
     public Optional<ProductResponse> updateProduct(Long id, Product updatedProduct) {
         return productRepository.findById(id)
                 .map(existingProduct -> {
+                    // Validate required fields
+                    validateProduct(updatedProduct);
+
+                    // Update category if provided
+                    if (updatedProduct.getCategory() != null && updatedProduct.getCategory().getId() != null) {
+                        Category category = categoryRepository.findById(updatedProduct.getCategory().getId())
+                                .orElseThrow(() -> new IllegalArgumentException("Category not found"));
+                        existingProduct.setCategory(category);
+                    }
+
                     // Update fields
                     existingProduct.setName(updatedProduct.getName());
                     existingProduct.setDescription(updatedProduct.getDescription());
                     existingProduct.setPrice(updatedProduct.getPrice());
-                    existingProduct.setCategory(updatedProduct.getCategory());
                     existingProduct.setSizes(updatedProduct.getSizes());
-                    existingProduct.setAvailability(updatedProduct.getAvailability());
                     existingProduct.setFeatured(updatedProduct.getFeatured());
-                    existingProduct.setStockQuantity(updatedProduct.getStockQuantity());
 
                     // Keep existing image if new one is not provided
                     if (updatedProduct.getImageUrl() != null) {
@@ -97,37 +112,27 @@ public class ProductService {
                     }
 
                     Product savedProduct = productRepository.save(existingProduct);
-                    return ProductResponse.fromEntity(savedProduct);
+                    return mapToResponseWithRatings(savedProduct);
                 });
     }
 
-    // Delete product
+    // Delete product (and its reviews)
     public boolean deleteProduct(Long id) {
         if (productRepository.existsById(id)) {
+            // Delete associated reviews
+            reviewRepository.deleteByProductId(id);
+            // Delete product
             productRepository.deleteById(id);
             return true;
         }
         return false;
     }
 
-    // Toggle availability
-    public Optional<ProductResponse> toggleAvailability(Long id) {
-        return productRepository.findById(id)
-                .map(product -> {
-                    AvailabilityStatus newStatus = product.getAvailability() == AvailabilityStatus.IN_STOCK
-                            ? AvailabilityStatus.UNAVAILABLE
-                            : AvailabilityStatus.IN_STOCK;
-                    product.setAvailability(newStatus);
-                    Product savedProduct = productRepository.save(product);
-                    return ProductResponse.fromEntity(savedProduct);
-                });
-    }
-
     // Search products by name
     public List<ProductResponse> searchProducts(String searchTerm) {
         List<Product> products = productRepository.findByNameContainingIgnoreCase(searchTerm);
         return products.stream()
-                .map(ProductResponse::fromEntity)
+                .map(this::mapToResponseWithRatings)
                 .collect(Collectors.toList());
     }
 
@@ -136,11 +141,19 @@ public class ProductService {
         if (product.getName() == null || product.getName().trim().isEmpty()) {
             throw new IllegalArgumentException("Product name is required");
         }
-        if (product.getPrice() == null || product.getPrice().doubleValue() < 0) {
-            throw new IllegalArgumentException("Product price must be non-negative");
+        if (product.getPrice() == null || product.getPrice().doubleValue() <= 0) {
+            throw new IllegalArgumentException("Product price must be greater than 0");
         }
         if (product.getName().length() > 100) {
             throw new IllegalArgumentException("Product name must be less than 100 characters");
         }
+    }
+
+    // Helper method to map with ratings
+    private ProductResponse mapToResponseWithRatings(Product product) {
+        Double averageRating = reviewRepository.getAverageRatingByProductId(product.getId())
+                .orElse(0.0);
+        Long reviewCount = reviewRepository.countByProductId(product.getId());
+        return ProductResponse.fromEntity(product, averageRating, reviewCount);
     }
 }

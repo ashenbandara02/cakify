@@ -47,6 +47,9 @@ public class Product {
     @Column(nullable = false)
     private Boolean featured = false;
 
+    @Column(nullable = false)
+    private Boolean availability = true;
+
     // Store sizes as comma-separated string for simplicity
     @Column(columnDefinition = "TEXT")
     private String sizes;

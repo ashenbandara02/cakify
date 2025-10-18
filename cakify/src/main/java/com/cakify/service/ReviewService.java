@@ -25,7 +25,7 @@ public class ReviewService {
 
     // Check if customer is a verified buyer (has completed order)
     public boolean isVerifiedBuyer(String email, Long productId) {
-        return orderRepository.existsByEmailAndProductIdAndStatus(email, productId, "COMPLETED");
+        return orderRepository.existsByEmailAndProductIdAndStatus(email, productId);
     }
 
     // Add review (with verification)

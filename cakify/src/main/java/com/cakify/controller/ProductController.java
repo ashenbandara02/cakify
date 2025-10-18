@@ -1,7 +1,7 @@
 package com.cakify.controller;
 
 import com.cakify.dto.ProductResponse;
-import com.cakify.entity.AvailabilityStatus;
+import com.cakify.entity.Category;
 import com.cakify.entity.Product;
 import com.cakify.service.ProductService;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +16,7 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/products")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:8080") // Allow frontend access
+@CrossOrigin(origins = "http://localhost:8080")
 public class ProductController {
 
     private final ProductService productService;
@@ -50,10 +50,10 @@ public class ProductController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // GET /api/products/category/{category} - Get products by category
-    @GetMapping("/category/{category}")
-    public ResponseEntity<List<ProductResponse>> getProductsByCategory(@PathVariable String category) {
-        List<ProductResponse> products = productService.getProductsByCategory(category);
+    // GET /api/products/category/{categoryId} - Get products by category ID
+    @GetMapping("/category/{categoryId}")
+    public ResponseEntity<List<ProductResponse>> getProductsByCategory(@PathVariable Long categoryId) {
+        List<ProductResponse> products = productService.getProductsByCategory(categoryId);
         return ResponseEntity.ok(products);
     }
 
@@ -66,28 +66,32 @@ public class ProductController {
 
     // POST /api/products - Create new product (Admin only)
     @PostMapping
-    public ResponseEntity<ProductResponse> createProduct(@RequestBody CreateProductRequest request) {
+    public ResponseEntity<?> createProduct(@RequestBody CreateProductRequest request) {
         try {
             Product product = new Product();
             product.setName(request.getName());
             product.setDescription(request.getDescription());
             product.setPrice(request.getPrice());
-            product.setCategory(request.getCategory());
+
+            // Set category
+            Category category = new Category();
+            category.setId(request.getCategoryId());
+            product.setCategory(category);
+
             product.setSizeList(request.getSizes());
-            product.setAvailability(AvailabilityStatus.fromBoolean(request.getAvailability()));
             product.setFeatured(request.getFeatured());
             product.setImageUrl(request.getImageUrl());
 
             ProductResponse createdProduct = productService.createProduct(product);
             return ResponseEntity.status(HttpStatus.CREATED).body(createdProduct);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
     }
 
     // PUT /api/products/{id} - Update product (Admin only)
     @PutMapping("/{id}")
-    public ResponseEntity<ProductResponse> updateProduct(
+    public ResponseEntity<?> updateProduct(
             @PathVariable Long id,
             @RequestBody CreateProductRequest request) {
         try {
@@ -95,9 +99,13 @@ public class ProductController {
             product.setName(request.getName());
             product.setDescription(request.getDescription());
             product.setPrice(request.getPrice());
-            product.setCategory(request.getCategory());
+
+            // Set category
+            Category category = new Category();
+            category.setId(request.getCategoryId());
+            product.setCategory(category);
+
             product.setSizeList(request.getSizes());
-            product.setAvailability(AvailabilityStatus.fromBoolean(request.getAvailability()));
             product.setFeatured(request.getFeatured());
             product.setImageUrl(request.getImageUrl());
 
@@ -105,7 +113,7 @@ public class ProductController {
             return updatedProduct.map(ResponseEntity::ok)
                     .orElse(ResponseEntity.notFound().build());
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
     }
 
@@ -116,22 +124,13 @@ public class ProductController {
         return deleted ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
     }
 
-    // PATCH /api/products/{id}/availability - Toggle availability (Admin only)
-    @PatchMapping("/{id}/availability")
-    public ResponseEntity<ProductResponse> toggleAvailability(@PathVariable Long id) {
-        Optional<ProductResponse> updatedProduct = productService.toggleAvailability(id);
-        return updatedProduct.map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
-
     // Inner class for request body
     public static class CreateProductRequest {
         private String name;
         private String description;
         private BigDecimal price;
-        private String category;
+        private Long categoryId;
         private List<String> sizes;
-        private Boolean availability = true;
         private Boolean featured = false;
         private String imageUrl;
 
@@ -145,14 +144,11 @@ public class ProductController {
         public BigDecimal getPrice() { return price; }
         public void setPrice(BigDecimal price) { this.price = price; }
 
-        public String getCategory() { return category; }
-        public void setCategory(String category) { this.category = category; }
+        public Long getCategoryId() { return categoryId; }
+        public void setCategoryId(Long categoryId) { this.categoryId = categoryId; }
 
         public List<String> getSizes() { return sizes; }
         public void setSizes(List<String> sizes) { this.sizes = sizes; }
-
-        public Boolean getAvailability() { return availability; }
-        public void setAvailability(Boolean availability) { this.availability = availability; }
 
         public Boolean getFeatured() { return featured; }
         public void setFeatured(Boolean featured) { this.featured = featured; }

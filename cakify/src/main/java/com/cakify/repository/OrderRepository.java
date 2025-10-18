@@ -70,4 +70,28 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     */
     @Query("SELECT o FROM Order o WHERE LOWER(o.customerName) LIKE LOWER(CONCAT('%', :name, '%'))")
         Page<Order> findByCustomerNameContainingIgnoreCase(@Param("name") String name, Pageable pageable);
+
+
+
+
+
+
+    // ========== METHOD FOR PRODUCT REVIEW VERIFICATION (PRODUCT CRUD RELATED) ==========
+    /**
+     * Check if a customer has a completed order containing a specific product
+     * Used by Review System to verify only actual buyers can leave reviews
+     *
+     * @param email Customer email address
+     * @param productId Product ID to check
+     * @return true if customer has completed order with this product, false otherwise
+     */
+    @Query("SELECT COUNT(o) > 0 FROM Order o " +
+            "WHERE o.customerEmail = :email " +
+            "AND o.status = 'COMPLETED' " +
+            "AND EXISTS (SELECT 1 FROM OrderItem oi WHERE oi.order = o AND oi.productId = :productId)")
+    boolean existsByEmailAndProductIdAndStatus(
+            @Param("email") String email,
+            @Param("productId") Long productId
+    );
+    //=====================================================================================
 }

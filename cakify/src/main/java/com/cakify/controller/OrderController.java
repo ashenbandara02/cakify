@@ -15,11 +15,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/orders")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "http://localhost:8080")
 public class OrderController {
 
     @Autowired
@@ -88,17 +89,18 @@ public class OrderController {
     }
 
     // Update order status
-    @PutMapping("/{id}/status")
-    public ResponseEntity<Order> updateOrderStatus(@PathVariable Long id, @RequestBody OrderStatus status) {
-        try {
-            Order updatedOrder = orderService.updateOrderStatus(id, status);
-            return new ResponseEntity<>(updatedOrder, HttpStatus.OK);
-        } catch (RuntimeException e) {
-            return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
-        } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+@PutMapping("/{id}/status")
+public ResponseEntity<Order> updateOrderStatus(@PathVariable Long id, @RequestBody Map<String, String> request) {
+    try {
+        OrderStatus status = OrderStatus.valueOf(request.get("status"));
+        Order updatedOrder = orderService.updateOrderStatus(id, status);
+        return new ResponseEntity<>(updatedOrder, HttpStatus.OK);
+    } catch (IllegalArgumentException e) {
+        return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
+    } catch (RuntimeException e) {
+        return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
     }
+}
 
     // Update entire order
     @PutMapping("/{id}")

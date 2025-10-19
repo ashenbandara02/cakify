@@ -1,32 +1,49 @@
 package com.cakify.security;
 
 import io.jsonwebtoken.*;
+import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Component;
+
+import java.security.Key;
 import java.util.Date;
 
 @Component
 public class JwtUtil {
-    private final String SECRET_KEY = "your_secret_key"; // replace with env variable
 
+    // Secret Key
+    private static final String SECRET_KEY = "asdabsbauscnouasnco091ue0in23ejo2n3j0ic-9efh-e=kwidncid";
+
+    // Token validity: 24 hours
+    private static final long EXPIRATION_TIME = 24 * 60 * 60 * 1000;
+    private final Key key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
+
+    // Generate JWT token
     public String generateToken(String username) {
         return Jwts.builder()
                 .setSubject(username)
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10)) // 10 hours
-                .signWith(SignatureAlgorithm.HS256, SECRET_KEY)
+                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
+                .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
     }
 
+    // Validate token
+    public boolean validateToken(String token) {
+        try {
+            Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
+            return true;
+        } catch (JwtException | IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    // Extract username
     public String extractUsername(String token) {
-        return Jwts.parser().setSigningKey(SECRET_KEY).parseClaimsJws(token).getBody().getSubject();
-    }
-
-    public boolean validateToken(String token, String username) {
-        return username.equals(extractUsername(token)) && !isTokenExpired(token);
-    }
-
-    private boolean isTokenExpired(String token) {
-        Date expiration = Jwts.parser().setSigningKey(SECRET_KEY).parseClaimsJws(token).getBody().getExpiration();
-        return expiration.before(new Date());
+        return Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .getSubject();
     }
 }

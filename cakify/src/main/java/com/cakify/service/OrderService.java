@@ -8,6 +8,7 @@ import com.cakify.enums.OrderStatus;
 import com.cakify.repository.OrderRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import com.cakify.exception.OrderNotFoundException;
 import com.cakify.exception.OrderValidationException;
 import com.cakify.exception.InvalidOrderStatusException;
@@ -23,13 +24,37 @@ public class OrderService {
     @Autowired
     private OrderRepository orderRepository;
 
+    @Autowired
+    private BillService billService;
+
+    @Autowired
+    private EmailService emailService;
+
     // Create new order
-    public Order createOrder(Order order) {
-        validateOrder(order);
-        order.setStatus(OrderStatus.PENDING);
-        order.setOrderDate(LocalDateTime.now());
-        return orderRepository.save(order);
+    @Transactional
+public Order createOrder(Order order) {
+    validateOrder(order);
+    order.setStatus(OrderStatus.PENDING);
+    order.setOrderDate(LocalDateTime.now());
+    Order savedOrder = orderRepository.save(order);
+    
+    //  Generate bill automatically
+    try {
+        billService.generateBillForOrder(savedOrder);
+    } catch (Exception e) {
+        // Log error but don't fail order creation
+        System.err.println("Failed to generate bill for order " + savedOrder.getOrderId() + ": " + e.getMessage());
     }
+
+    // ⭐ Send order confirmation email
+    try {
+        emailService.sendOrderConfirmationEmail(savedOrder);
+    } catch (Exception e) {
+        System.err.println("Failed to send order confirmation email: " + e.getMessage());
+    }
+
+    return savedOrder;
+}
 
     // Get all orders
     public List<Order> getAllOrders() {
@@ -58,7 +83,20 @@ public class OrderService {
         Order order = orderOpt.get();
         validateStatusTransition(order.getStatus(), newStatus);
         order.setStatus(newStatus);
-        return orderRepository.save(order);
+        Order updatedOrder = orderRepository.save(order);
+        
+        // ⭐ Send email notification for status change
+        try {
+            if (newStatus == OrderStatus.CANCELLED) {
+                emailService.sendOrderCancellationEmail(updatedOrder);
+            } else {
+                emailService.sendOrderStatusUpdateEmail(updatedOrder, newStatus);
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to send status update email: " + e.getMessage());
+        }
+        
+        return updatedOrder;
     }
     throw new OrderNotFoundException(orderId);
     }

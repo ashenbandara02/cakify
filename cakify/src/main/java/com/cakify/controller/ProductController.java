@@ -4,22 +4,26 @@ import com.cakify.dto.ProductResponse;
 import com.cakify.entity.Category;
 import com.cakify.entity.Product;
 import com.cakify.service.ProductService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/products")
-@RequiredArgsConstructor
 @CrossOrigin(origins = "http://localhost:8080")
 public class ProductController {
 
     private final ProductService productService;
+
+    public ProductController(ProductService productService) {
+        this.productService = productService;
+    }
 
     // GET /api/products - Get all products
     @GetMapping
@@ -89,6 +93,32 @@ public class ProductController {
         }
     }
 
+    /**
+     * Upload image for existing product
+     * POST /api/products/{id}/upload-image
+     */
+    @PostMapping("/{id}/upload-image")
+    public ResponseEntity<?> uploadProductImage(
+            @PathVariable Long id,
+            @RequestParam("image") MultipartFile file) {
+
+        try {
+            ProductResponse response = productService.uploadProductImage(id, file);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            // Validation error (invalid file type, size, etc.)
+            return ResponseEntity.badRequest().body(
+                    Map.of("error", e.getMessage())
+            );
+        } catch (Exception e) {
+            // Server error
+            System.err.println("❌ Error uploading image: " + e.getMessage());
+            return ResponseEntity.status(500).body(
+                    Map.of("error", "Failed to upload image: " + e.getMessage())
+            );
+        }
+    }
+
     // PUT /api/products/{id} - Update product (Admin only)
     @PutMapping("/{id}")
     public ResponseEntity<?> updateProduct(
@@ -119,9 +149,41 @@ public class ProductController {
 
     // DELETE /api/products/{id} - Delete product (Admin only)
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
-        boolean deleted = productService.deleteProduct(id);
-        return deleted ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
+    public ResponseEntity<?> deleteProduct(@PathVariable Long id) {
+        try {
+            productService.deleteProduct(id);
+            return ResponseEntity.ok(Map.of(
+                    "message", "Product deleted successfully",
+                    "id", id
+            ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to delete product: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Delete product image
+     * DELETE /api/products/{id}/image
+     */
+    @DeleteMapping("/{id}/image")
+    public ResponseEntity<?> deleteProductImage(@PathVariable Long id) {
+        try {
+            ProductResponse response = productService.deleteProductImage(id);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(
+                    Map.of("error", e.getMessage())
+            );
+        } catch (Exception e) {
+            System.err.println("❌ Error deleting image: " + e.getMessage());
+            return ResponseEntity.status(500).body(
+                    Map.of("error", "Failed to delete image: " + e.getMessage())
+            );
+        }
     }
 
     // Inner class for request body

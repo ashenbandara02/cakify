@@ -6,22 +6,32 @@ import com.cakify.entity.Product;
 import com.cakify.repository.CategoryRepository;
 import com.cakify.repository.ProductRepository;
 import com.cakify.repository.ReviewRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 @Transactional
 public class ProductService {
 
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final ReviewRepository reviewRepository;
+    private final ImageService imageService;
+
+    public ProductService(ProductRepository productRepository,
+                          CategoryRepository categoryRepository,
+                          ReviewRepository reviewRepository,
+                          ImageService imageService) {
+        this.productRepository = productRepository;
+        this.categoryRepository = categoryRepository;
+        this.reviewRepository = reviewRepository;
+        this.imageService = imageService;
+    }
 
     // Get all products with ratings
     public List<ProductResponse> getAllProducts() {
@@ -116,16 +126,69 @@ public class ProductService {
                 });
     }
 
-    // Delete product (and its reviews)
-    public boolean deleteProduct(Long id) {
-        if (productRepository.existsById(id)) {
-            // Delete associated reviews
-            reviewRepository.deleteByProductId(id);
-            // Delete product
-            productRepository.deleteById(id);
-            return true;
+    /**
+     * Upload product image
+     * @param productId - Product ID
+     * @param file - Image file
+     * @return Updated ProductResponse with new imageUrl
+     */
+    public ProductResponse uploadProductImage(Long productId, MultipartFile file) {
+        // Find product
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Product not found with id: " + productId));
+
+        // Delete old image if exists
+        if (product.getImageUrl() != null && !product.getImageUrl().isEmpty()) {
+            try {
+                imageService.deleteProductImage(product.getImageUrl());
+                System.out.println("🗑️ Old image deleted for product: " + productId);
+            } catch (Exception e) {
+                System.err.println("⚠️ Failed to delete old image: " + e.getMessage());
+                // Continue anyway - old file might already be gone
+            }
         }
-        return false;
+
+        // Save new image
+        String imageUrl = imageService.saveProductImage(file, productId);
+        System.out.println("📸 New image saved for product " + productId + ": " + imageUrl);
+
+        // Update product
+        product.setImageUrl(imageUrl);
+        Product savedProduct = productRepository.save(product);
+
+        // Convert to response
+        return mapToResponseWithRatings(savedProduct);
+    }
+
+    /**
+     * Delete product image
+     * @param productId - Product ID
+     * @return Updated ProductResponse with imageUrl = null
+     */
+    public ProductResponse deleteProductImage(Long productId) {
+        // Find product
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Product not found with id: " + productId));
+
+        // Delete image file
+        if (product.getImageUrl() != null && !product.getImageUrl().isEmpty()) {
+            try {
+                imageService.deleteProductImage(product.getImageUrl());
+                System.out.println("🗑️ Image deleted for product: " + productId);
+            } catch (Exception e) {
+                System.err.println("⚠️ Failed to delete image: " + e.getMessage());
+                // Continue anyway
+            }
+        }
+
+        // Update product
+        product.setImageUrl(null);
+        Product savedProduct = productRepository.save(product);
+
+        // Convert to response
+        return mapToResponseWithRatings(savedProduct);
     }
 
     // Search products by name
@@ -148,6 +211,30 @@ public class ProductService {
             throw new IllegalArgumentException("Product name must be less than 100 characters");
         }
     }
+
+    /**
+     * Update deleteProduct method to delete image before deleting product
+     */
+    public void deleteProduct(Long id) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Product not found with id: " + id));
+
+        // Delete image BEFORE deleting product
+        if (product.getImageUrl() != null && !product.getImageUrl().isEmpty()) {
+            try {
+                imageService.deleteProductImage(product.getImageUrl());
+                System.out.println("🗑️ Image deleted with product: " + id);
+            } catch (Exception e) {
+                System.err.println("⚠️ Failed to delete image during product deletion: " + e.getMessage());
+                // Continue with product deletion anyway
+            }
+        }
+
+        productRepository.delete(product);
+        System.out.println("✅ Product deleted: " + id);
+    }
+
 
     // Helper method to map with ratings
     private ProductResponse mapToResponseWithRatings(Product product) {

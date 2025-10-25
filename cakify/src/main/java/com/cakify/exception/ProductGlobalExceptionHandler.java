@@ -1,5 +1,7 @@
 package com.cakify.exception;
 
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -23,6 +25,7 @@ import java.util.Map;
  * - Separation of Concerns: Module-specific exception handling
  */
 @ControllerAdvice
+@Order(Ordered.HIGHEST_PRECEDENCE)
 public class ProductGlobalExceptionHandler {
     
     // ==================== PRODUCT EXCEPTIONS ====================

@@ -2,13 +2,16 @@ package com.cakify.service;
 
 import com.cakify.dto.CategoryResponse;
 import com.cakify.entity.Category;
+import com.cakify.exception.CategoryInUseException;
+import com.cakify.exception.CategoryNotFoundException;
+import com.cakify.exception.DuplicateCategoryException;
 import com.cakify.repository.CategoryRepository;
+import com.cakify.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -17,6 +20,7 @@ import java.util.stream.Collectors;
 public class CategoryService {
 
     private final CategoryRepository categoryRepository;
+    private final ProductRepository productRepository;
 
     // Get all categories
     public List<CategoryResponse> getAllCategories() {
@@ -27,9 +31,10 @@ public class CategoryService {
     }
 
     // Get category by ID
-    public Optional<CategoryResponse> getCategoryById(Long id) {
+    public CategoryResponse getCategoryById(Long id) {
         return categoryRepository.findById(id)
-                .map(this::mapToResponse);
+                .map(this::mapToResponse)
+                .orElseThrow(() -> new CategoryNotFoundException("Category not found with ID: " + id));
     }
 
     // Create new category
@@ -39,7 +44,7 @@ public class CategoryService {
 
         // Check if category already exists
         if (categoryRepository.existsByNameIgnoreCase(name)) {
-            throw new IllegalArgumentException("Category already exists: " + name);
+            throw new DuplicateCategoryException("Category already exists: " + name);
         }
 
         // Create and save
@@ -51,31 +56,37 @@ public class CategoryService {
     }
 
     // Update category
-    public Optional<CategoryResponse> updateCategory(Long id, String newName) {
+    public CategoryResponse updateCategory(Long id, String newName) {
         // Validate input
         validateCategoryName(newName);
 
-        return categoryRepository.findById(id)
-                .map(existingCategory -> {
-                    // Check if new name already exists (and it's not the same category)
-                    if (!existingCategory.getName().equalsIgnoreCase(newName) &&
-                            categoryRepository.existsByNameIgnoreCase(newName)) {
-                        throw new IllegalArgumentException("Category name already in use: " + newName);
-                    }
+        Category existingCategory = categoryRepository.findById(id)
+                .orElseThrow(() -> new CategoryNotFoundException("Category not found with ID: " + id));
 
-                    existingCategory.setName(newName.trim());
-                    Category updatedCategory = categoryRepository.save(existingCategory);
-                    return mapToResponse(updatedCategory);
-                });
+        // Check if new name already exists (and it's not the same category)
+        if (!existingCategory.getName().equalsIgnoreCase(newName) &&
+                categoryRepository.existsByNameIgnoreCase(newName)) {
+            throw new DuplicateCategoryException("Category name already in use: " + newName);
+        }
+
+        existingCategory.setName(newName.trim());
+        Category updatedCategory = categoryRepository.save(existingCategory);
+        return mapToResponse(updatedCategory);
     }
 
     // Delete category
-    public boolean deleteCategory(Long id) {
-        if (categoryRepository.existsById(id)) {
-            categoryRepository.deleteById(id);
-            return true;
+    public void deleteCategory(Long id) {
+        // Check if category exists
+        if (!categoryRepository.existsById(id)) {
+            throw new CategoryNotFoundException("Category not found with ID: " + id);
         }
-        return false;
+
+        // Check if category is in use by any products
+        if (!productRepository.findByCategoryId(id).isEmpty()) {
+            throw new CategoryInUseException("Cannot delete category. It is currently in use by one or more products.");
+        }
+
+        categoryRepository.deleteById(id);
     }
 
     // Helper method to validate category name

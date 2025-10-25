@@ -49,9 +49,8 @@ public class ProductController {
     // GET /api/products/{id} - Get product by ID
     @GetMapping("/{id}")
     public ResponseEntity<ProductResponse> getProductById(@PathVariable Long id) {
-        Optional<ProductResponse> product = productService.getProductById(id);
-        return product.map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        ProductResponse product = productService.getProductById(id);
+        return ResponseEntity.ok(product);
     }
 
     // GET /api/products/category/{categoryId} - Get products by category ID
@@ -98,25 +97,11 @@ public class ProductController {
      * POST /api/products/{id}/upload-image
      */
     @PostMapping("/{id}/upload-image")
-    public ResponseEntity<?> uploadProductImage(
+    public ResponseEntity<ProductResponse> uploadProductImage(
             @PathVariable Long id,
             @RequestParam("image") MultipartFile file) {
-
-        try {
-            ProductResponse response = productService.uploadProductImage(id, file);
-            return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException e) {
-            // Validation error (invalid file type, size, etc.)
-            return ResponseEntity.badRequest().body(
-                    Map.of("error", e.getMessage())
-            );
-        } catch (Exception e) {
-            // Server error
-            System.err.println("❌ Error uploading image: " + e.getMessage());
-            return ResponseEntity.status(500).body(
-                    Map.of("error", "Failed to upload image: " + e.getMessage())
-            );
-        }
+        ProductResponse response = productService.uploadProductImage(id, file);
+        return ResponseEntity.ok(response);
     }
 
     // PUT /api/products/{id} - Update product (Admin only)

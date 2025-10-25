@@ -10,37 +10,44 @@ import java.util.Date;
 @Component
 public class JwtUtil {
 
-    // Secret Key
-    private static final String SECRET_KEY = "asdabsbauscnouasnco091ue0in23ejo2n3j0ic-9efh-e=kwidncid";
+    // ✅ Must be at least 32 bytes (this one is 64)
+    private static final String SECRET_KEY = "b12f60e8b5a9a3d84f49d1cb23e4d8a7b7e9f8d6c5a4b3c2d1e0f9a8b7c6d5e4";
 
-    // Token validity: 24 hours
-    private static final long EXPIRATION_TIME = 24 * 60 * 60 * 1000;
-    private final Key key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
+    private static final long EXPIRATION_TIME = 24 * 60 * 60 * 1000; // 24h
 
-    // Generate JWT token
+    private Key getSigningKey() {
+        // ✅ Use Keys.hmacShaKeyFor safely each time to avoid initialization issues
+        return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
+    }
+
+    // ✅ Generate JWT token
     public String generateToken(String username) {
         return Jwts.builder()
                 .setSubject(username)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
-                .signWith(key, SignatureAlgorithm.HS256)
+                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
 
-    // Validate token
+    // ✅ Validate token
     public boolean validateToken(String token) {
         try {
-            Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
+            Jwts.parserBuilder()
+                    .setSigningKey(getSigningKey())
+                    .build()
+                    .parseClaimsJws(token);
             return true;
         } catch (JwtException | IllegalArgumentException e) {
+            System.err.println("Invalid JWT: " + e.getMessage());
             return false;
         }
     }
 
-    // Extract username
+    // ✅ Extract username
     public String extractUsername(String token) {
         return Jwts.parserBuilder()
-                .setSigningKey(key)
+                .setSigningKey(getSigningKey())
                 .build()
                 .parseClaimsJws(token)
                 .getBody()

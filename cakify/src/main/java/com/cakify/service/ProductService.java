@@ -3,6 +3,10 @@ package com.cakify.service;
 import com.cakify.dto.ProductResponse;
 import com.cakify.entity.Category;
 import com.cakify.entity.Product;
+import com.cakify.exception.CategoryNotFoundException;
+import com.cakify.exception.ImageUploadException;
+import com.cakify.exception.ProductNotFoundException;
+import com.cakify.exception.ProductValidationException;
 import com.cakify.repository.CategoryRepository;
 import com.cakify.repository.ProductRepository;
 import com.cakify.repository.ReviewRepository;
@@ -42,9 +46,10 @@ public class ProductService {
     }
 
     // Get product by ID with ratings
-    public Optional<ProductResponse> getProductById(Long id) {
+    public ProductResponse getProductById(Long id) {
         return productRepository.findById(id)
-                .map(this::mapToResponseWithRatings);
+                .map(this::mapToResponseWithRatings)
+                .orElseThrow(() -> new ProductNotFoundException("Product not found with ID: " + id));
     }
 
     // Get available products only (for public)
@@ -78,11 +83,11 @@ public class ProductService {
 
         // Verify category exists
         if (product.getCategory() == null || product.getCategory().getId() == null) {
-            throw new IllegalArgumentException("Category is required");
+            throw new ProductValidationException("Category is required");
         }
 
         Category category = categoryRepository.findById(product.getCategory().getId())
-                .orElseThrow(() -> new IllegalArgumentException("Category not found"));
+                .orElseThrow(() -> new CategoryNotFoundException(product.getCategory().getId()));
 
         product.setCategory(category);
 
@@ -105,7 +110,7 @@ public class ProductService {
                     // Update category if provided
                     if (updatedProduct.getCategory() != null && updatedProduct.getCategory().getId() != null) {
                         Category category = categoryRepository.findById(updatedProduct.getCategory().getId())
-                                .orElseThrow(() -> new IllegalArgumentException("Category not found"));
+                                .orElseThrow(() -> new CategoryNotFoundException(updatedProduct.getCategory().getId()));
                         existingProduct.setCategory(category);
                     }
 
@@ -135,8 +140,7 @@ public class ProductService {
     public ProductResponse uploadProductImage(Long productId, MultipartFile file) {
         // Find product
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Product not found with id: " + productId));
+                .orElseThrow(() -> new ProductNotFoundException(productId));
 
         // Delete old image if exists
         if (product.getImageUrl() != null && !product.getImageUrl().isEmpty()) {
@@ -150,15 +154,19 @@ public class ProductService {
         }
 
         // Save new image
-        String imageUrl = imageService.saveProductImage(file, productId);
-        System.out.println("📸 New image saved for product " + productId + ": " + imageUrl);
+        try {
+            String imageUrl = imageService.saveProductImage(file, productId);
+            System.out.println("📸 New image saved for product " + productId + ": " + imageUrl);
 
-        // Update product
-        product.setImageUrl(imageUrl);
-        Product savedProduct = productRepository.save(product);
+            // Update product
+            product.setImageUrl(imageUrl);
+            Product savedProduct = productRepository.save(product);
 
-        // Convert to response
-        return mapToResponseWithRatings(savedProduct);
+            // Convert to response
+            return mapToResponseWithRatings(savedProduct);
+        } catch (Exception e) {
+            throw new ImageUploadException("Failed to upload image for product " + productId, e);
+        }
     }
 
     /**
@@ -169,8 +177,7 @@ public class ProductService {
     public ProductResponse deleteProductImage(Long productId) {
         // Find product
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Product not found with id: " + productId));
+                .orElseThrow(() -> new ProductNotFoundException(productId));
 
         // Delete image file
         if (product.getImageUrl() != null && !product.getImageUrl().isEmpty()) {
@@ -202,13 +209,13 @@ public class ProductService {
     // Validation helper
     private void validateProduct(Product product) {
         if (product.getName() == null || product.getName().trim().isEmpty()) {
-            throw new IllegalArgumentException("Product name is required");
+            throw new ProductValidationException("Product name is required");
         }
         if (product.getPrice() == null || product.getPrice().doubleValue() <= 0) {
-            throw new IllegalArgumentException("Product price must be greater than 0");
+            throw new ProductValidationException("Product price must be greater than 0");
         }
         if (product.getName().length() > 100) {
-            throw new IllegalArgumentException("Product name must be less than 100 characters");
+            throw new ProductValidationException("Product name must be less than 100 characters");
         }
     }
 
@@ -217,8 +224,7 @@ public class ProductService {
      */
     public void deleteProduct(Long id) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Product not found with id: " + id));
+                .orElseThrow(() -> new ProductNotFoundException(id));
 
         // Delete image BEFORE deleting product
         if (product.getImageUrl() != null && !product.getImageUrl().isEmpty()) {

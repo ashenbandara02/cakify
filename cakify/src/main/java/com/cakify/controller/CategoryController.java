@@ -28,25 +28,20 @@ public class CategoryController {
     // GET category by ID
     @GetMapping("/{id}")
     public ResponseEntity<CategoryResponse> getCategoryById(@PathVariable Long id) {
-        return categoryService.getCategoryById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        CategoryResponse category = categoryService.getCategoryById(id);
+        return ResponseEntity.ok(category);
     }
 
     // POST create new category
     @PostMapping
     public ResponseEntity<CategoryResponse> createCategory(@RequestBody Map<String, String> request) {
-        try {
-            String name = request.get("name");
-            if (name == null || name.trim().isEmpty()) {
-                return ResponseEntity.badRequest().build();
-            }
-
-            CategoryResponse created = categoryService.createCategory(name);
-            return ResponseEntity.status(HttpStatus.CREATED).body(created);
-        } catch (IllegalArgumentException e) {
+        String name = request.get("name");
+        if (name == null || name.trim().isEmpty()) {
             return ResponseEntity.badRequest().build();
         }
+
+        CategoryResponse created = categoryService.createCategory(name);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     // PUT update category
@@ -54,24 +49,19 @@ public class CategoryController {
     public ResponseEntity<CategoryResponse> updateCategory(
             @PathVariable Long id,
             @RequestBody Map<String, String> request) {
-        try {
-            String newName = request.get("name");
-            if (newName == null || newName.trim().isEmpty()) {
-                return ResponseEntity.badRequest().build();
-            }
-
-            return categoryService.updateCategory(id, newName)
-                    .map(ResponseEntity::ok)
-                    .orElse(ResponseEntity.notFound().build());
-        } catch (IllegalArgumentException e) {
+        String newName = request.get("name");
+        if (newName == null || newName.trim().isEmpty()) {
             return ResponseEntity.badRequest().build();
         }
+
+        CategoryResponse updated = categoryService.updateCategory(id, newName);
+        return ResponseEntity.ok(updated);
     }
 
     // DELETE category
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteCategory(@PathVariable Long id) {
-        boolean deleted = categoryService.deleteCategory(id);
-        return deleted ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
+        categoryService.deleteCategory(id);
+        return ResponseEntity.noContent().build();
     }
 }

@@ -23,69 +23,39 @@ public class ReviewController {
 
     // POST - Add a new review (public, but with buyer verification)
     @PostMapping
-    public ResponseEntity<?> addReview(
+    public ResponseEntity<ReviewResponse> addReview(
             @PathVariable Long productId,
-            @Valid @RequestBody ReviewRequest reviewRequest) {
-        try {
-            ReviewResponse review = reviewService.addReview(productId, reviewRequest);
-            return ResponseEntity.status(HttpStatus.CREATED).body(review);
-        } catch (RuntimeException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("message", e.getMessage());
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
-        }
+            @RequestBody ReviewRequest reviewRequest) {
+        ReviewResponse review = reviewService.addReview(productId, reviewRequest);
+        return ResponseEntity.status(HttpStatus.CREATED).body(review);
     }
 
     // GET - Get all reviews for a product
     @GetMapping
-    public ResponseEntity<?> getProductReviews(@PathVariable Long productId) {
-        try {
-            List<ReviewResponse> reviews = reviewService.getProductReviews(productId);
-            return ResponseEntity.ok(reviews);
-        } catch (RuntimeException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("message", e.getMessage());
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
-        }
+    public ResponseEntity<List<ReviewResponse>> getProductReviews(@PathVariable Long productId) {
+        List<ReviewResponse> reviews = reviewService.getProductReviews(productId);
+        return ResponseEntity.ok(reviews);
     }
 
     // GET - Get review statistics (average rating and count)
     @GetMapping("/stats")
-    public ResponseEntity<?> getReviewStats(@PathVariable Long productId) {
-        try {
-            Double averageRating = reviewService.getAverageRating(productId);
-            Long reviewCount = reviewService.getReviewCount(productId);
+    public ResponseEntity<Map<String, Object>> getReviewStats(@PathVariable Long productId) {
+        Double averageRating = reviewService.getAverageRating(productId);
+        Long reviewCount = reviewService.getReviewCount(productId);
 
-            Map<String, Object> stats = new HashMap<>();
-            stats.put("averageRating", averageRating);
-            stats.put("reviewCount", reviewCount);
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("averageRating", averageRating);
+        stats.put("reviewCount", reviewCount);
 
-            return ResponseEntity.ok(stats);
-        } catch (RuntimeException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("message", e.getMessage());
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
-        }
+        return ResponseEntity.ok(stats);
     }
 
     // DELETE - Delete a review (admin only)
     @DeleteMapping("/{reviewId}")
-    public ResponseEntity<?> deleteReview(
+    public ResponseEntity<Void> deleteReview(
             @PathVariable Long productId,
             @PathVariable Long reviewId) {
-        try {
-            boolean deleted = reviewService.deleteReview(reviewId);
-            if (deleted) {
-                return ResponseEntity.noContent().build();
-            } else {
-                Map<String, String> error = new HashMap<>();
-                error.put("message", "Review not found");
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
-            }
-        } catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("message", "Error deleting review");
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
-        }
+        reviewService.deleteReview(reviewId);
+        return ResponseEntity.noContent().build();
     }
 }

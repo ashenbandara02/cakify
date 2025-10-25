@@ -7,6 +7,13 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * InquiryRequest DTO - Request object for creating inquiries
+ * 
+ * Design Patterns:
+ * - Factory Method: Used with InquiryResponse.fromEntity()
+ * - Builder Pattern: Lombok @Data provides builder
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -24,4 +31,7 @@ public class InquiryRequest {
     @NotBlank(message = "Message is required")
     @Size(min = 10, max = 1000, message = "Message must be between 10 and 1000 characters")
     private String message;
+    
+    // NEW: Category selection
+    private Long categoryId;
 }

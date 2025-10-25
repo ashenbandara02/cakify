@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.UnsupportedEncodingException;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 /**
  * Service class for handling email notifications
@@ -23,13 +24,13 @@ import java.time.format.DateTimeFormatter;
 @Service
 public class EmailService {
 
-    @Autowired
+    @Autowired(required = false)
     private JavaMailSender mailSender;
 
-    @Value("${cakify.email.from}")
+    @Value("${cakify.email.from:noreply@cakify.com}")
     private String fromEmail;
 
-    @Value("${cakify.email.fromName}")
+    @Value("${cakify.email.fromName:Cakify}")
     private String fromName;
 
     /**
@@ -37,6 +38,10 @@ public class EmailService {
      */
     @Async
     public void sendOrderConfirmationEmail(Order order) {
+        if (mailSender == null) {
+            System.out.println("Email service not configured. Skipping order confirmation email.");
+            return;
+        }
         try {
             String subject = "Order Confirmation - Order #" + order.getOrderId();
             String body = buildOrderConfirmationEmail(order);
@@ -52,6 +57,10 @@ public class EmailService {
      */
     @Async
     public void sendOrderStatusUpdateEmail(Order order, OrderStatus newStatus) {
+        if (mailSender == null) {
+            System.out.println("Email service not configured. Skipping order status update email.");
+            return;
+        }
         try {
             String subject = "Order Update - " + formatStatus(newStatus) + " - Order #" + order.getOrderId();
             String body = buildOrderStatusUpdateEmail(order, newStatus);
@@ -66,6 +75,10 @@ public class EmailService {
      */
     @Async
     public void sendBillGeneratedEmail(Bill bill, Order order) {
+        if (mailSender == null) {
+            System.out.println("Email service not configured. Skipping bill generated email.");
+            return;
+        }
         try {
             String subject = "Bill Generated - " + bill.getBillNumber();
             String body = buildBillGeneratedEmail(bill, order);
@@ -80,6 +93,10 @@ public class EmailService {
      */
     @Async
     public void sendOrderCancellationEmail(Order order) {
+        if (mailSender == null) {
+            System.out.println("Email service not configured. Skipping order cancellation email.");
+            return;
+        }
         try {
             String subject = "Order Cancelled - Order #" + order.getOrderId();
             String body = buildOrderCancellationEmail(order);
@@ -432,5 +449,203 @@ public class EmailService {
             case DELIVERED -> "#4CAF50";
             case CANCELLED -> "#dc3545";
         };
+    }
+
+    // ==================== INQUIRY EMAIL METHODS ====================
+
+    /**
+     * Send inquiry auto-response email (async)
+     * Sent immediately when customer submits inquiry
+     * 
+     * Design Pattern: Template Method Pattern
+     * - Uses HTML email template structure
+     */
+    @Async
+    public void sendInquiryAutoResponseEmail(String customerEmail, String customerName, Long inquiryId, String categoryName) {
+        if (mailSender == null) {
+            System.out.println("Email service not configured. Skipping inquiry auto-response email.");
+            return;
+        }
+        try {
+            String subject = "We Received Your Inquiry - Cakify #" + inquiryId;
+            String body = buildInquiryAutoResponseEmail(customerName, inquiryId, categoryName);
+            sendHtmlEmail(customerEmail, subject, body);
+        } catch (Exception e) {
+            System.err.println("Failed to send inquiry auto-response email: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Send inquiry reply email (async)
+     * Sent when admin replies to customer inquiry
+     */
+    @Async
+    public void sendInquiryReplyEmail(String customerEmail, String customerName, Long inquiryId, 
+                                     String originalMessage, String replyMessage, List<String> attachmentUrls) {
+        if (mailSender == null) {
+            System.out.println("Email service not configured. Skipping inquiry reply email.");
+            return;
+        }
+        try {
+            String subject = "Response to Your Inquiry - Cakify #" + inquiryId;
+            String body = buildInquiryReplyEmail(customerName, inquiryId, originalMessage, replyMessage, attachmentUrls);
+            sendHtmlEmail(customerEmail, subject, body);
+        } catch (Exception e) {
+            System.err.println("Failed to send inquiry reply email: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Build HTML email for inquiry auto-response
+     */
+    private String buildInquiryAutoResponseEmail(String customerName, Long inquiryId, String categoryName) {
+        String categoryInfo = categoryName != null ? 
+            "<p><strong>Category:</strong> " + categoryName + "</p>" : "";
+            
+        return """
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                    .header { background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); color: white; padding: 30px; text-align: center; border-radius: 10px; }
+                    .content { background-color: #f9f9f9; padding: 25px; margin-top: 20px; border-radius: 10px; }
+                    .inquiry-box { background-color: white; padding: 20px; margin: 15px 0; border-left: 4px solid #667eea; border-radius: 5px; }
+                    .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }
+                    .btn { display: inline-block; padding: 12px 30px; background-color: #667eea; color: white; text-decoration: none; border-radius: 5px; margin-top: 15px; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1>✉️ Thank You for Contacting Cakify!</h1>
+                    </div>
+                    <div class="content">
+                        <p>Dear <strong>%s</strong>,</p>
+                        
+                        <p>We have received your inquiry and wanted to let you know that we're on it! 🎂</p>
+                        
+                        <div class="inquiry-box">
+                            <p><strong>Inquiry ID:</strong> #%d</p>
+                            %s
+                            <p><strong>Status:</strong> <span style="color: #ffa500;">⏳ Pending Review</span></p>
+                        </div>
+                        
+                        <p><strong>What happens next?</strong></p>
+                        <ul>
+                            <li>Our team will review your inquiry carefully</li>
+                            <li>You'll receive a detailed response within 24 hours</li>
+                            <li>We'll answer all your questions about our delicious cakes!</li>
+                        </ul>
+                        
+                        <p>In the meantime, feel free to browse our cake collection on our website.</p>
+                        
+                        <p style="margin-top: 25px;">Thank you for choosing Cakify! 🍰</p>
+                    </div>
+                    <div class="footer">
+                        <p><strong>Cakify Bakery</strong></p>
+                        <p>Your satisfaction is our priority!</p>
+                        <p style="margin-top: 10px;">📧 %s</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """.formatted(
+                customerName,
+                inquiryId,
+                categoryInfo,
+                fromEmail
+            );
+    }
+
+    /**
+     * Build HTML email for inquiry reply
+     */
+    private String buildInquiryReplyEmail(String customerName, Long inquiryId, String originalMessage, 
+                                         String replyMessage, List<String> attachmentUrls) {
+        // Build attachments section
+        StringBuilder attachmentsHtml = new StringBuilder();
+        if (attachmentUrls != null && !attachmentUrls.isEmpty()) {
+            attachmentsHtml.append("<div style='margin-top: 20px;'>");
+            attachmentsHtml.append("<p><strong>📎 Reference Attachments:</strong></p>");
+            attachmentsHtml.append("<ul>");
+            for (String url : attachmentUrls) {
+                String fileName = url.substring(url.lastIndexOf('/') + 1);
+                attachmentsHtml.append("<li><a href='").append(url).append("'>").append(fileName).append("</a></li>");
+            }
+            attachmentsHtml.append("</ul>");
+            attachmentsHtml.append("</div>");
+        }
+        
+        return """
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                    .header { background: linear-gradient(135deg, #4CAF50 0%%, #45a049 100%%); color: white; padding: 30px; text-align: center; border-radius: 10px; }
+                    .content { background-color: #f9f9f9; padding: 25px; margin-top: 20px; border-radius: 10px; }
+                    .message-box { background-color: white; padding: 20px; margin: 15px 0; border-left: 4px solid #4CAF50; border-radius: 5px; }
+                    .original-message { background-color: #f5f5f5; padding: 15px; margin: 15px 0; border-left: 3px solid #999; border-radius: 5px; font-style: italic; }
+                    .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }
+                    .status-badge { background-color: #4CAF50; color: white; padding: 5px 15px; border-radius: 20px; display: inline-block; font-size: 14px; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1>✅ We've Responded to Your Inquiry!</h1>
+                    </div>
+                    <div class="content">
+                        <p>Dear <strong>%s</strong>,</p>
+                        
+                        <p>Thank you for your patience! We have reviewed your inquiry and here's our response:</p>
+                        
+                        <div class="message-box">
+                            <p><strong>Inquiry ID:</strong> #%d</p>
+                            <p><strong>Status:</strong> <span class="status-badge">✅ Resolved</span></p>
+                        </div>
+                        
+                        <div style="margin-top: 20px;">
+                            <p><strong>📝 Your Original Inquiry:</strong></p>
+                            <div class="original-message">
+                                %s
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: 20px;">
+                            <p><strong>💬 Our Response:</strong></p>
+                            <div class="message-box">
+                                %s
+                            </div>
+                        </div>
+                        
+                        %s
+                        
+                        <div style="margin-top: 30px; padding: 20px; background-color: #e8f5e9; border-radius: 5px;">
+                            <p><strong>Need more help?</strong></p>
+                            <p>If you have any additional questions or concerns, feel free to submit another inquiry. We're always here to help! 🎂</p>
+                        </div>
+                        
+                        <p style="margin-top: 25px;">Thank you for choosing Cakify! We look forward to serving you delicious cakes! 🍰</p>
+                    </div>
+                    <div class="footer">
+                        <p><strong>Cakify Bakery</strong></p>
+                        <p>Baking happiness, one cake at a time!</p>
+                        <p style="margin-top: 10px;">📧 %s</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """.formatted(
+                customerName,
+                inquiryId,
+                originalMessage,
+                replyMessage,
+                attachmentsHtml.toString(),
+                fromEmail
+            );
     }
 }

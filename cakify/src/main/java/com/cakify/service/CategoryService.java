@@ -90,6 +90,9 @@ public class CategoryService {
 
     // Helper method to map entity to DTO
     private CategoryResponse mapToResponse(Category category) {
-        return new CategoryResponse(category.getId(), category.getName());
+        CategoryResponse response = new CategoryResponse();
+        response.setId(category.getId());
+        response.setName(category.getName());
+        return response;
     }
 }

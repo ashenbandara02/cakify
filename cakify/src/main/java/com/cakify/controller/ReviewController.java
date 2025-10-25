@@ -25,7 +25,7 @@ public class ReviewController {
     @PostMapping
     public ResponseEntity<ReviewResponse> addReview(
             @PathVariable Long productId,
-            @Valid @RequestBody ReviewRequest reviewRequest) {
+            @RequestBody ReviewRequest reviewRequest) {
         ReviewResponse review = reviewService.addReview(productId, reviewRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(review);
     }

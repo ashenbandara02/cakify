@@ -23,13 +23,13 @@ import java.time.format.DateTimeFormatter;
 @Service
 public class EmailService {
 
-    @Autowired
+    @Autowired(required = false)
     private JavaMailSender mailSender;
 
-    @Value("${cakify.email.from}")
+    @Value("${cakify.email.from:noreply@cakify.com}")
     private String fromEmail;
 
-    @Value("${cakify.email.fromName}")
+    @Value("${cakify.email.fromName:Cakify}")
     private String fromName;
 
     /**
@@ -93,6 +93,11 @@ public class EmailService {
      * Send HTML email using MimeMessage
      */
     private void sendHtmlEmail(String to, String subject, String htmlContent) throws MessagingException, UnsupportedEncodingException {
+        if (mailSender == null) {
+            System.out.println("Email not configured - skipping email to: " + to);
+            return;
+        }
+        
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
         

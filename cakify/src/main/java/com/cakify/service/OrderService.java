@@ -4,8 +4,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import com.cakify.entity.Order;
+import com.cakify.entity.OrderItem;
+import com.cakify.entity.Product;
 import com.cakify.enums.OrderStatus;
 import com.cakify.repository.OrderRepository;
+import com.cakify.repository.ProductRepository;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,9 +39,16 @@ public class OrderService {
     @Autowired
     private EmailService emailService;
 
+    @Autowired
+    private ProductRepository productRepository;
+
     // Create new order
     @Transactional
 public Order createOrder(Order order) {
+    // VALIDATION 1: Calculate and set order total from product prices
+    BigDecimal calculatedTotal = calculateOrderTotal(order);
+    order.setTotalAmount(calculatedTotal);
+    
     validateDeliveryDate(order.getDeliveryDate());
     validateOrder(order);
     order.setStatus(OrderStatus.PENDING);
@@ -359,5 +370,51 @@ private void validateCancellation(Order order) {
     // Log for audit trail
     System.out.println("Order #" + order.getOrderId() + 
                       " cancellation validated. Current status: " + currentStatus);
+ }
+
+ /**
+ * Auto-calculate order total from OrderItem prices
+ * - Fetches current product prices from database
+ * - Calculates subtotal for each item (price × quantity)
+ * - Sets unitPrice on each OrderItem (for price history)
+ * - Returns the calculated total amount
+ */
+private BigDecimal calculateOrderTotal(Order order) {
+    BigDecimal total = BigDecimal.ZERO;
+    
+    // Process each order item
+    for (OrderItem item : order.getOrderItems()) {
+        // Validate product exists and get current price
+        Product product = productRepository.findById(item.getProductId())
+            .orElseThrow(() -> new OrderValidationException(
+                "Product with ID " + item.getProductId() + " not found"));
+        
+        // Validate quantity is positive
+        if (item.getQuantity() <= 0) {
+            throw new OrderValidationException(
+                "Quantity must be greater than 0 for product: " + product.getName());
+        }
+        
+        // Get current product price
+        BigDecimal unitPrice = product.getPrice();
+        
+        // Validate price is positive
+        if (unitPrice.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new OrderValidationException(
+                "Product " + product.getName() + " has invalid price");
+        }
+        
+        // Calculate subtotal for this item
+        BigDecimal subtotal = unitPrice.multiply(BigDecimal.valueOf(item.getQuantity()));
+        
+        // Set price fields on OrderItem (for price history)
+        item.setUnitPrice(unitPrice);
+        item.setTotalPrice(subtotal);
+        
+        // Add to running total
+        total = total.add(subtotal);
+    }
+    
+    return total;
  }
 }

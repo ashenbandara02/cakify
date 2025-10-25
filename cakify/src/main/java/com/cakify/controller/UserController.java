@@ -1,5 +1,7 @@
 package com.cakify.controller;
 
+import com.cakify.dto.AuthRequestDto;
+import com.cakify.dto.AuthResponseDto;
 import com.cakify.dto.UserRequestDto;
 import com.cakify.dto.UserResponseDto;
 import com.cakify.exception.UserExceptions;
@@ -60,11 +62,12 @@ public class UserController {
 
     // Login
     @PostMapping("/login")
-    public UserResponseDto login(@RequestParam String username, @RequestParam String password) {
+    public AuthResponseDto login(@RequestBody AuthRequestDto request) {
         try {
-            return userService.login(username, password);
+            return userService.login(request.getUsername(), request.getPassword());
         } catch (Exception e) {
             throw new UserExceptions("Login failed: " + e.getMessage(), "USER_LOGIN_ERROR");
         }
     }
+
 }

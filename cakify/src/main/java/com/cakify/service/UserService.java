@@ -1,9 +1,12 @@
 package com.cakify.service;
 
+import com.cakify.dto.AuthResponseDto;
 import com.cakify.dto.UserRequestDto;
 import com.cakify.dto.UserResponseDto;
 import com.cakify.entity.User;
 import com.cakify.repository.UserRepository;
+import com.cakify.security.JwtUtil;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -16,6 +19,7 @@ import java.util.stream.Collectors;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final JwtUtil jwtUtil;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     // Create admin
@@ -65,7 +69,8 @@ public class UserService {
     }
 
     // Simple login
-    public UserResponseDto login(String username, String password) {
+
+    public AuthResponseDto login(String username, String password) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Invalid username or password"));
 
@@ -73,7 +78,10 @@ public class UserService {
             throw new RuntimeException("Invalid username or password");
         }
 
-        return toResponseDTO(user);
+        // ✅ Generate JWT (for frontend)
+        String token = jwtUtil.generateToken(username);
+
+        return new AuthResponseDto(token, username);
     }
 
     // Utility mapper

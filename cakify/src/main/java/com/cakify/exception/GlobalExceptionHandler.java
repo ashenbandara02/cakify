@@ -101,4 +101,11 @@ public class GlobalExceptionHandler {
         
         return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
     }
+
+    @ExceptionHandler(InvalidOrderException.class)
+public ResponseEntity<String> handleInvalidOrderException(InvalidOrderException ex) {
+    return ResponseEntity
+        .status(HttpStatus.BAD_REQUEST)
+        .body(ex.getMessage());
+ }
 }

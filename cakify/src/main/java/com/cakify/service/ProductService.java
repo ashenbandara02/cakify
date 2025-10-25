@@ -46,9 +46,10 @@ public class ProductService {
     }
 
     // Get product by ID with ratings
-    public Optional<ProductResponse> getProductById(Long id) {
+    public ProductResponse getProductById(Long id) {
         return productRepository.findById(id)
-                .map(this::mapToResponseWithRatings);
+                .map(this::mapToResponseWithRatings)
+                .orElseThrow(() -> new ProductNotFoundException("Product not found with ID: " + id));
     }
 
     // Get available products only (for public)

@@ -49,9 +49,8 @@ public class ProductController {
     // GET /api/products/{id} - Get product by ID
     @GetMapping("/{id}")
     public ResponseEntity<ProductResponse> getProductById(@PathVariable Long id) {
-        Optional<ProductResponse> product = productService.getProductById(id);
-        return product.map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        ProductResponse product = productService.getProductById(id);
+        return ResponseEntity.ok(product);
     }
 
     // GET /api/products/category/{categoryId} - Get products by category ID

@@ -1,17 +1,32 @@
 package com.cakify.controller;
 
-import com.cakify.dto.InquiryRequest;
-import com.cakify.dto.InquiryResponse;
-import com.cakify.service.InquiryService;
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.cakify.dto.InquiryRequest;
+import com.cakify.dto.InquiryResponse;
+import com.cakify.service.InquiryAttachmentService;
+import com.cakify.service.InquiryService;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/inquiries")
@@ -20,6 +35,7 @@ import java.util.Optional;
 public class InquiryController {
     
     private final InquiryService inquiryService;
+    private final InquiryAttachmentService attachmentService;
     
     // POST /api/inquiries - Customer submits inquiry (Public endpoint)
     @PostMapping
@@ -27,6 +43,44 @@ public class InquiryController {
         try {
             InquiryResponse createdInquiry = inquiryService.createInquiry(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(createdInquiry);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    /**
+     * Create inquiry with optional attachments (customer-facing multipart form)
+     * POST /api/inquiries (Content-Type: multipart/form-data)
+     * 
+     * @param request InquiryRequest as a request part named "inquiry"
+     * @param files Optional files part named "files"
+     * @return Created inquiry with attachments uploaded
+     */
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<InquiryResponse> createInquiryWithAttachments(
+            @RequestPart("inquiry") @Valid InquiryRequest request,
+            @RequestPart(value = "files", required = false) MultipartFile[] files) {
+
+        try {
+            InquiryResponse created = inquiryService.createInquiry(request);
+
+            // If files are provided, upload them and attach to the created inquiry
+            if (files != null && files.length > 0) {
+                Long inquiryId = Long.parseLong(created.getId());
+                for (MultipartFile file : files) {
+                    try {
+                        attachmentService.uploadAttachment(inquiryId, file);
+                    } catch (Exception ex) {
+                        // Log and continue uploading remaining files - do not fail the whole request
+                        System.err.println("Failed to upload attachment for inquiry " + inquiryId + ": " + ex.getMessage());
+                    }
+                }
+                // Refresh response to include attachments
+                created = inquiryService.getInquiryById(inquiryId)
+                        .orElse(created);
+            }
+
+            return ResponseEntity.status(HttpStatus.CREATED).body(created);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
         }

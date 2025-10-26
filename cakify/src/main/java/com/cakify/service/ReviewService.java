@@ -102,6 +102,27 @@ public class ReviewService {
         reviewRepository.deleteById(reviewId);
     }
 
+    // Update review approval status (admin only)
+    public ReviewResponse updateReviewApproval(Long productId, Long reviewId, Boolean approved) {
+        // Verify product exists
+        if (!productRepository.existsById(productId)) {
+            throw new ProductNotFoundException("Product not found with ID: " + productId);
+        }
+
+        // Find and update the review
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new ReviewNotFoundException("Review not found with ID: " + reviewId));
+
+        // Verify the review belongs to the specified product
+        if (!review.getProduct().getId().equals(productId)) {
+            throw new ReviewValidationException("Review does not belong to the specified product");
+        }
+
+        review.setApproved(approved);
+        Review savedReview = reviewRepository.save(review);
+        return ReviewResponse.fromEntity(savedReview);
+    }
+
     // Helper method to validate review request
     private void validateReviewRequest(ReviewRequest reviewRequest) {
         if (reviewRequest.getEmail() == null || reviewRequest.getEmail().trim().isEmpty()) {

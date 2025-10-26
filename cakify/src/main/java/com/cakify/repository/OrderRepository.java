@@ -87,7 +87,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
      */
     @Query("SELECT COUNT(o) > 0 FROM Order o " +
             "WHERE o.customerEmail = :email " +
-            "AND o.status = 'COMPLETED' " +
+            "AND o.status = 'DELIVERED' " +
             "AND EXISTS (SELECT 1 FROM OrderItem oi WHERE oi.order = o AND oi.productId = :productId)")
     boolean existsByEmailAndProductIdAndStatus(
             @Param("email") String email,

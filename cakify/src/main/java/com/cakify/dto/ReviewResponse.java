@@ -18,6 +18,7 @@ public class ReviewResponse {
     private String email;
     private Integer rating;
     private String comment;
+    private Boolean approved; // Added for admin moderation
     private LocalDateTime createdAt;
 
     // Convert from Review entity to DTO
@@ -27,6 +28,7 @@ public class ReviewResponse {
                 .email(review.getEmail())
                 .rating(review.getRating())
                 .comment(review.getComment())
+                .approved(review.getApproved())
                 .createdAt(review.getCreatedAt())
                 .build();
     }

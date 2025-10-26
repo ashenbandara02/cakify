@@ -241,6 +241,23 @@ public class ProductService {
         System.out.println("✅ Product deleted: " + id);
     }
 
+    /**
+     * Toggle product availability (true <-> false)
+     * @param id - Product ID
+     * @return Updated ProductResponse
+     */
+    public ProductResponse toggleAvailability(Long id) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ProductNotFoundException("Product not found with ID: " + id));
+        
+        // Toggle availability
+        product.setAvailability(!product.getAvailability());
+        Product savedProduct = productRepository.save(product);
+        
+        System.out.println("✅ Product availability toggled: " + id + " -> " + savedProduct.getAvailability());
+        return mapToResponseWithRatings(savedProduct);
+    }
+
 
     // Helper method to map with ratings
     private ProductResponse mapToResponseWithRatings(Product product) {

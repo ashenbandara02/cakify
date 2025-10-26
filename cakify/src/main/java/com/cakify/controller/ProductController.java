@@ -171,6 +171,21 @@ public class ProductController {
         }
     }
 
+    /**
+     * Toggle product availability
+     * PATCH /api/products/{id}/availability
+     */
+    @PatchMapping("/{id}/availability")
+    public ResponseEntity<?> toggleProductAvailability(@PathVariable Long id) {
+        try {
+            ProductResponse response = productService.toggleAvailability(id);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+
     // Inner class for request body
     public static class CreateProductRequest {
         private String name;

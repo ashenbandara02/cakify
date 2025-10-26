@@ -78,17 +78,18 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     // ========== METHOD FOR PRODUCT REVIEW VERIFICATION (PRODUCT CRUD RELATED) ==========
     /**
-     * Check if a customer has a completed order containing a specific product
+     * Check if a customer has a delivered order containing a specific product
      * Used by Review System to verify only actual buyers can leave reviews
      *
      * @param email Customer email address
      * @param productId Product ID to check
-     * @return true if customer has completed order with this product, false otherwise
+     * @return true if customer has delivered order with this product, false otherwise
      */
-    @Query("SELECT COUNT(o) > 0 FROM Order o " +
-            "WHERE o.customerEmail = :email " +
-            "AND o.status = 'COMPLETED' " +
-            "AND EXISTS (SELECT 1 FROM OrderItem oi WHERE oi.order = o AND oi.productId = :productId)")
+    @Query("SELECT CASE WHEN COUNT(o) > 0 THEN true ELSE false END " +
+           "FROM Order o JOIN o.orderItems oi " +
+           "WHERE o.customerEmail = :email " +
+           "AND o.status = com.cakify.enums.OrderStatus.DELIVERED " +
+           "AND oi.productId = :productId")
     boolean existsByEmailAndProductIdAndStatus(
             @Param("email") String email,
             @Param("productId") Long productId

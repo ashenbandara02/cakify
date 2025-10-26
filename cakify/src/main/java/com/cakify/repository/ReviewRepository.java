@@ -30,4 +30,14 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 
     // Delete all reviews for a product (used when product is deleted)
     void deleteByProductId(Long productId);
+
+    // Find only APPROVED reviews for a product (for customers)
+    List<Review> findByProductIdAndApprovedTrue(Long productId);
+
+    // Count only APPROVED reviews for a product
+    long countByProductIdAndApprovedTrue(Long productId);
+
+    // Calculate average rating for APPROVED reviews only
+    @Query("SELECT AVG(r.rating) FROM Review r WHERE r.product.id = :productId AND r.approved = true")
+    Optional<Double> getAverageRatingByProductIdAndApprovedTrue(@Param("productId") Long productId);
 }

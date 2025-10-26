@@ -63,8 +63,22 @@ public class ReviewService {
         return ReviewResponse.fromEntity(savedReview);
     }
 
-    // Get all reviews for a product
+    // Get all APPROVED reviews for a product (for customers)
     public List<ReviewResponse> getProductReviews(Long productId) {
+        // Verify product exists
+        if (!productRepository.existsById(productId)) {
+            throw new ProductNotFoundException("Product not found with ID: " + productId);
+        }
+
+        // Only return approved reviews to customers
+        List<Review> reviews = reviewRepository.findByProductIdAndApprovedTrue(productId);
+        return reviews.stream()
+                .map(ReviewResponse::fromEntity)
+                .collect(Collectors.toList());
+    }
+
+    // Get ALL reviews for a product (for admin - including unapproved)
+    public List<ReviewResponse> getAllProductReviews(Long productId) {
         // Verify product exists
         if (!productRepository.existsById(productId)) {
             throw new ProductNotFoundException("Product not found with ID: " + productId);
@@ -76,15 +90,25 @@ public class ReviewService {
                 .collect(Collectors.toList());
     }
 
-    // Get average rating for a product
+    // Get average rating for a product (only approved reviews)
     public Double getAverageRating(Long productId) {
-        return reviewRepository.getAverageRatingByProductId(productId)
+        return reviewRepository.getAverageRatingByProductIdAndApprovedTrue(productId)
                 .orElse(0.0);
     }
 
-    // Get review count for a product
+    // Get review count for a product (only approved reviews)
     public Long getReviewCount(Long productId) {
-        return reviewRepository.countByProductId(productId);
+        return reviewRepository.countByProductIdAndApprovedTrue(productId);
+    }
+
+    // Approve or reject review (admin only)
+    public ReviewResponse updateApprovalStatus(Long reviewId, boolean approved) {
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new ReviewNotFoundException("Review not found with ID: " + reviewId));
+        
+        review.setApproved(approved);
+        Review updatedReview = reviewRepository.save(review);
+        return ReviewResponse.fromEntity(updatedReview);
     }
 
     // Get review by ID

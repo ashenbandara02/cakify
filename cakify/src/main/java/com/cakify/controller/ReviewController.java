@@ -30,10 +30,17 @@ public class ReviewController {
         return ResponseEntity.status(HttpStatus.CREATED).body(review);
     }
 
-    // GET - Get all reviews for a product
+    // GET - Get all reviews for a product (only approved for customers)
     @GetMapping
     public ResponseEntity<List<ReviewResponse>> getProductReviews(@PathVariable Long productId) {
         List<ReviewResponse> reviews = reviewService.getProductReviews(productId);
+        return ResponseEntity.ok(reviews);
+    }
+
+    // GET - Get ALL reviews for a product (for admin - includes unapproved)
+    @GetMapping("/all")
+    public ResponseEntity<List<ReviewResponse>> getAllProductReviews(@PathVariable Long productId) {
+        List<ReviewResponse> reviews = reviewService.getAllProductReviews(productId);
         return ResponseEntity.ok(reviews);
     }
 
@@ -57,5 +64,15 @@ public class ReviewController {
             @PathVariable Long reviewId) {
         reviewService.deleteReview(reviewId);
         return ResponseEntity.noContent().build();
+    }
+
+    // PATCH - Approve or reject a review (admin only)
+    @PatchMapping("/{reviewId}/approve")
+    public ResponseEntity<ReviewResponse> updateApprovalStatus(
+            @PathVariable Long productId,
+            @PathVariable Long reviewId,
+            @RequestParam boolean approved) {
+        ReviewResponse review = reviewService.updateApprovalStatus(reviewId, approved);
+        return ResponseEntity.ok(review);
     }
 }

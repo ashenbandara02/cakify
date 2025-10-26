@@ -19,6 +19,7 @@ public class ReviewResponse {
     private Integer rating;
     private String comment;
     private LocalDateTime createdAt;
+    private Boolean approved;
 
     // Convert from Review entity to DTO
     public static ReviewResponse fromEntity(Review review) {
@@ -28,6 +29,7 @@ public class ReviewResponse {
                 .rating(review.getRating())
                 .comment(review.getComment())
                 .createdAt(review.getCreatedAt())
+                .approved(review.getApproved())
                 .build();
     }
 }

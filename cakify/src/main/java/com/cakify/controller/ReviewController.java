@@ -50,6 +50,23 @@ public class ReviewController {
         return ResponseEntity.ok(stats);
     }
 
+    // GET - Get all reviews for admin (including unapproved)
+    @GetMapping("/all")
+    public ResponseEntity<List<ReviewResponse>> getAllProductReviews(@PathVariable Long productId) {
+        List<ReviewResponse> reviews = reviewService.getProductReviews(productId);
+        return ResponseEntity.ok(reviews);
+    }
+
+    // PATCH - Update review approval status (admin only)
+    @PatchMapping("/{reviewId}/approve")
+    public ResponseEntity<ReviewResponse> updateReviewApproval(
+            @PathVariable Long productId,
+            @PathVariable Long reviewId,
+            @RequestParam Boolean approved) {
+        ReviewResponse updatedReview = reviewService.updateReviewApproval(productId, reviewId, approved);
+        return ResponseEntity.ok(updatedReview);
+    }
+
     // DELETE - Delete a review (admin only)
     @DeleteMapping("/{reviewId}")
     public ResponseEntity<Void> deleteReview(

@@ -206,6 +206,18 @@ public class ProductService {
                 .collect(Collectors.toList());
     }
 
+    // Toggle product availability
+    public ProductResponse toggleAvailability(Long id) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ProductNotFoundException("Product not found with ID: " + id));
+
+        // Toggle the availability
+        product.setAvailability(!product.getAvailability());
+
+        Product savedProduct = productRepository.save(product);
+        return mapToResponseWithRatings(savedProduct);
+    }
+
     // Validation helper
     private void validateProduct(Product product) {
         if (product.getName() == null || product.getName().trim().isEmpty()) {

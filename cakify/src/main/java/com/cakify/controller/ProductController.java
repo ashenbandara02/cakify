@@ -132,6 +132,20 @@ public class ProductController {
         }
     }
 
+    // PATCH /api/products/{id}/availability - Toggle product availability (Admin only)
+    @PatchMapping("/{id}/availability")
+    public ResponseEntity<?> toggleProductAvailability(@PathVariable Long id) {
+        try {
+            ProductResponse updatedProduct = productService.toggleAvailability(id);
+            return ResponseEntity.ok(updatedProduct);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to toggle availability"));
+        }
+    }
+
     // DELETE /api/products/{id} - Delete product (Admin only)
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteProduct(@PathVariable Long id) {

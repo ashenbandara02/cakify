@@ -101,4 +101,22 @@ public class GlobalExceptionHandler {
         
         return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
     }
+
+    /**
+     * Handle InvalidOrderException - HTTP 400
+     */
+    @ExceptionHandler(InvalidOrderException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidOrderException(
+            InvalidOrderException ex, WebRequest request) {
+        
+        ErrorResponse errorResponse = new ErrorResponse(
+            HttpStatus.BAD_REQUEST.value(),
+            "Invalid Order",
+            ex.getMessage(),
+            request.getDescription(false).replace("uri=", ""),
+            "INVALID_ORDER"
+        );
+        
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
 }

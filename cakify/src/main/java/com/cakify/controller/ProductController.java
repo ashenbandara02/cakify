@@ -16,7 +16,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/products")
-@CrossOrigin(origins = "http://localhost:8080")
+@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:3000", "http://localhost:8080", "http://localhost:8081"})
 public class ProductController {
 
     private final ProductService productService;
@@ -129,20 +129,6 @@ public class ProductController {
                     .orElse(ResponseEntity.notFound().build());
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
-        }
-    }
-
-    // PATCH /api/products/{id}/availability - Toggle product availability (Admin only)
-    @PatchMapping("/{id}/availability")
-    public ResponseEntity<?> toggleProductAvailability(@PathVariable Long id) {
-        try {
-            ProductResponse updatedProduct = productService.toggleAvailability(id);
-            return ResponseEntity.ok(updatedProduct);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Failed to toggle availability"));
         }
     }
 

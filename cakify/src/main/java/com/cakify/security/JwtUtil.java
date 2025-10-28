@@ -10,17 +10,17 @@ import java.util.Date;
 @Component
 public class JwtUtil {
 
-    // ✅ Must be at least 32 bytes (this one is 64)
+    // Must be at least 32 bytes (this one is 64)
     private static final String SECRET_KEY = "b12f60e8b5a9a3d84f49d1cb23e4d8a7b7e9f8d6c5a4b3c2d1e0f9a8b7c6d5e4";
 
     private static final long EXPIRATION_TIME = 24 * 60 * 60 * 1000; // 24h
 
     private Key getSigningKey() {
-        // ✅ Use Keys.hmacShaKeyFor safely each time to avoid initialization issues
+        // Use Keys.hmacShaKeyFor safely each time to avoid initialization issues
         return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
     }
 
-    // ✅ Generate JWT token
+    // Generate JWT token
     public String generateToken(String username) {
         return Jwts.builder()
                 .setSubject(username)
@@ -30,7 +30,7 @@ public class JwtUtil {
                 .compact();
     }
 
-    // ✅ Validate token
+    // Validate token
     public boolean validateToken(String token) {
         try {
             Jwts.parserBuilder()
@@ -44,7 +44,7 @@ public class JwtUtil {
         }
     }
 
-    // ✅ Extract username
+    // Extract username
     public String extractUsername(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(getSigningKey())

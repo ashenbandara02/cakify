@@ -78,7 +78,7 @@ public class UserService {
             throw new RuntimeException("Invalid username or password");
         }
 
-        // ✅ Generate JWT (for frontend)
+        // Generate JWT (for frontend)
         String token = jwtUtil.generateToken(username);
 
         return new AuthResponseDto(token, username);
